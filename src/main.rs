@@ -235,7 +235,7 @@ fn main() {
                 }
                 PointerState::Pointing => match event {
                     Event::Key(EventKey { code, state: st }) => {
-                        if st == 1 {
+                        if st == 1 || [4, 5].contains(&code) {
                             match code {
                                 8 => break,
                                 4 => {
@@ -266,7 +266,33 @@ fn main() {
                             }
                         }
                     }
-                    Event::Ir(_) => todo!(),
+                    Event::Ir([pt0, ..]) => {
+                        let (dx, dy) = (pt0.x - pos.0, pt0.y - pos.1);
+                        if dx.abs() < 100 && dy.abs() < 100 && (dx.abs() > 3 || dy.abs() > 3) {
+                            mouse
+                                .emit(&[
+                                    InputEvent::new_now(
+                                        EventType::RELATIVE.0,
+                                        RelativeAxisCode::REL_X.0,
+                                        -dx * 2,
+                                    ),
+                                    InputEvent::new_now(
+                                        EventType::RELATIVE.0,
+                                        RelativeAxisCode::REL_Y.0,
+                                        dy * 2,
+                                    ),
+                                ])
+                                .unwrap();
+                            print!(
+                                "\rD ({}, {}) A ({}, {})                        ",
+                                pt0.x - pos.0,
+                                pt0.y - pos.1,
+                                pt0.x,
+                                pt0.y
+                            );
+                        }
+                        pos = (pt0.x, pt0.y);
+                    }
                     _ => (),
                 },
                 PointerState::Paused => {
@@ -274,6 +300,7 @@ fn main() {
 
                     if key.code == 10 && key.state == 1 {
                         state = PointerState::Pointing;
+                        pos = (0, 0);
                         continue;
                     }
                     if key.code == 9 && key.state == 1 {
@@ -295,31 +322,6 @@ fn main() {
                         )])
                         .unwrap();
                 }
-            }
-            if let Event::Ir([pt0, ..]) = event {
-                let (dx, dy) = (pt0.x - pos.0, pt0.y - pos.1);
-                if dx.abs() < 100 && dy.abs() < 100 {
-                    mouse
-                        .emit(&[
-                            InputEvent::new_now(
-                                EventType::RELATIVE.0,
-                                RelativeAxisCode::REL_X.0,
-                                -dx * 2,
-                            ),
-                            InputEvent::new_now(
-                                EventType::RELATIVE.0,
-                                RelativeAxisCode::REL_Y.0,
-                                dy * 2,
-                            ),
-                        ])
-                        .unwrap();
-                    print!(
-                        "\r{}, {}                        ",
-                        pt0.x - pos.0,
-                        pt0.y - pos.1
-                    );
-                }
-                pos = (pt0.x, pt0.y);
             }
         }
     }
